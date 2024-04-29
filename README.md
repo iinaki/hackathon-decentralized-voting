@@ -1,1 +1,1 @@
-# hackathon-decentralized-voting
+# Decentralized Voting
