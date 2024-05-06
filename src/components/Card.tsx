@@ -2,7 +2,13 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import './Cards.css';
 
-function Card({img, candidate_name, partido}) {
+type CardProps = {
+    img: string,
+    candidate_name: string,
+    partido: string
+};
+
+const Card: React.FunctionComponent<CardProps> = ({img, candidate_name, partido}) => {
     return (
         <div className='card text-center bg-dark animate__animated animate__fadeInUp'>
             <div className='overflow'>
@@ -17,12 +23,6 @@ function Card({img, candidate_name, partido}) {
             </div>
         </div>
     );
-}
-
-Card.propTypes = {
-    img: PropTypes.string,
-    candidate_name: PropTypes.string.isRequired,
-    partido: PropTypes.string.isRequired
 }
 
 export default Card;
