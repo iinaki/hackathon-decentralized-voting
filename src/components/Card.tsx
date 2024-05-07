@@ -5,24 +5,24 @@ import './Cards.css';
 type CardProps = {
     img: string,
     candidate_name: string,
-    partido: string
+    partido: string,
+    handleCardPick: () => void
 };
 
-const Card: React.FunctionComponent<CardProps> = ({img, candidate_name, partido}) => {
+const Card: React.FunctionComponent<CardProps> = ({ img, candidate_name, partido, handleCardPick }) => {
+    const handleClick = () => {
+        handleCardPick();
+    };
+
     return (
-        <div className='card text-center bg-dark animate__animated animate__fadeInUp'>
+        <a href='#!' className='card text-center bg-dark animate__animated animate__fadeInUp' onClick={handleClick}>
             <div className='overflow'>
                 <img src={img} alt='' className='card-img-top'/>
             </div>
             <div className='card-body text-light'>
                 <h1 className='card-title'>{candidate_name}</h1>
                 <p className='card-text text-secondary'>{partido}</p>
-                <a href='#!' className='btn btn-outline-secondary rounded-0'>
-                    Elegir
-                </a>
             </div>
-        </div>
+        </a>
     );
 }
-
-export default Card;

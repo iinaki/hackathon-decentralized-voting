@@ -5,12 +5,15 @@ import { Web3 } from 'web3';
 import './Sidebar.css';
 import {SidebarData} from './SidebarData';
 
-type SidebarProps = {
+import { Link } from 'react-router-dom';
+import { CssVarsProvider, CssBaseline, Typography, Button, Box } from '@mui/joy';
+
+type NavigationProps = {
   account: string,
   setAccount: (account: string) => void
 }
 
-const Sidebar: React.FunctionComponent<SidebarProps> = ({ account, setAccount }) => {
+const Navigation: React.FunctionComponent<NavigationProps> = ({ account, setAccount }) => {
 
   async function connectMetamask() {
     console.log("Connecting to Metamask")
@@ -27,40 +30,45 @@ const Sidebar: React.FunctionComponent<SidebarProps> = ({ account, setAccount })
 
       //show the first connected account in the react page
       setAccount(accounts[0]);
+
+      // subscribe to accountsChanged event
+      window.ethereum.on('accountsChanged', function (newAccounts: string[]) {
+        // update the account state when accounts change
+        setAccount(newAccounts[0]);
+      });
     } else {
       alert('Please download metamask');
     }
   }
 
   return (
-    <div className='Sidebar'>
-        {account != 'null' ? (
-                <button
-                    type="button"
+
+    <CssVarsProvider>
+      <CssBaseline />
+        <Box sx={{ display: 'flex', justifyContent: 'flex-start', gap: 1 , color: 'white'}}>
+            <Button>
+              <Link to={`/DVote/home`} className="link">
+                Back to home
+              </Link>
+            </Button>
+            
+            {account != 'null' ? (
+                <Button
                     className='MetamaskConnect'
                 >
                     {account.slice(0, 6) + '...' + account.slice(38, 42)}
-                </button>
+                </Button>
             ) : (
-                <button
-                    type="button"
+                <Button
                     className='MetamaskConnect'
                     onClick={connectMetamask}
                 >
                     Connect to Metamask
-                </button>
+                </Button>
             )}
-        <ul className='SidebarList'>
-            {SidebarData.map((val, key) => {
-            return (
-                <li key={key} className='row' id={window.location.pathname == val.link ? 'active' : ''} onClick={() => {window.location.pathname = val.link}}>
-                <div id='icon'>{val.icon}</div> <div id='title'>{val.title}</div>
-                </li>
-            )
-            })}
-        </ul>
-    </div>
+        </Box>
+    </CssVarsProvider>
   )
 }
 
-export default Sidebar
+export default Navigation;
