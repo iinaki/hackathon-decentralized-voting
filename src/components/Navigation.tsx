@@ -46,7 +46,7 @@ const Navigation: React.FunctionComponent<NavigationProps> = ({ account, setAcco
     <CssVarsProvider>
       <CssBaseline />
         <Box sx={{ display: 'flex', justifyContent: 'flex-start', gap: 1 , color: 'white'}}>
-            <Button>
+            <Button className='home'>
               <Link to={`/DVote/home`} className="link">
                 Back to home
               </Link>
