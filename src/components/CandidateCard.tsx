@@ -1,33 +1,53 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import './Cards.css';
+import * as React from 'react';
+import AspectRatio from '@mui/joy/AspectRatio';
+import Card from '@mui/joy/Card';
+import CardContent from '@mui/joy/CardContent';
+import CardOverflow from '@mui/joy/CardOverflow';
+import Divider from '@mui/joy/Divider';
+import Typography from '@mui/joy/Typography';
+import IconButton from '@mui/joy/IconButton';
+import Link from '@mui/joy/Link';
+import Favorite from '@mui/icons-material/Favorite';
 
 import { Candidate } from './Vote';
 
-import MultipleInteractionCard from './MultipleInteractionCard';
-
-type CandidateCardProps = {
+type CandidateCard = {
     candidate: Candidate,
-    handleCardPick: (candidate: Candidate) => void
+    handleCardPick: (candidate: Candidate) => void,
+    cardPicked: boolean
 };
 
-const CandidateCard: React.FunctionComponent<CandidateCardProps> = ({ candidate, handleCardPick }) => {
-    const handleClick = () => {
-        handleCardPick(candidate);
-    };
+const CandidateCard: React.FunctionComponent<CandidateCard> = ({ candidate, handleCardPick, cardPicked }) => {
 
-    return (
-        // <a className='card text-center bg-dark animate__animated animate__fadeInUp' onClick={handleClick}>
-        //     <div className='overflow'>
-        //         <img src={candidate.image} alt='' className='card-img-top' />
-        //     </div>
-        //     <div className='card-body text-light'>
-        //         <h1 className='card-title'>{candidate.candidato}</h1>
-        //         <p className='card-text text-secondary'>{candidate.partido}</p>
-        //     </div>
-        // </a>
-        <MultipleInteractionCard candidate={candidate} />
-    );
+  const handleClick = () => {
+    handleCardPick(candidate);
+  };
+
+  return (
+    <Card variant="outlined" sx={{ width: 320, border: cardPicked ? '3px solid #4147fa' : '1px solid #ccc', boxShadow: cardPicked ? '0 0 5px rgba(255, 0, 0, 0.5)' : 'none', borderRadius: '10px', cursor: 'pointer' }} onClick={handleClick} >
+      <CardOverflow>
+        <AspectRatio ratio="2">
+          <img
+            src={candidate.image}
+            loading="lazy"
+            alt=""
+          />
+        </AspectRatio>
+      </CardOverflow>
+      <CardContent >
+        <Typography level="title-md">
+          <Link overlay underline="none" >
+            {candidate.candidato}
+          </Link>
+        </Typography>
+        <Typography level="body-sm">
+          <Link overlay underline="none">
+            {candidate.partido}
+          </Link>
+        </Typography>
+      </CardContent>
+    </Card>
+  );
 }
 
 export default CandidateCard;

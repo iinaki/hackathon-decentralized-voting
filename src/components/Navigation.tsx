@@ -45,22 +45,33 @@ const Navigation: React.FunctionComponent<NavigationProps> = ({ account, setAcco
 
     <CssVarsProvider>
       <CssBaseline />
-        <Box sx={{ display: 'flex', justifyContent: 'flex-start', gap: 1 , color: 'white'}}>
-            <Button className='home'>
+        <Box sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                gap: 1,
+                color: 'white',
+                backgroundColor: '#222831',
+                padding: '1rem'
+              }}>
+            <Button className='home' variant="soft">
               <Link to={`/DVote/home`} className="link">
                 Back to home
               </Link>
             </Button>
             
             {account != 'null' ? (
-                <Button
+                <Button 
                     className='MetamaskConnect'
+                    variant="soft"
+                    size="lg"
                 >
                     {account.slice(0, 6) + '...' + account.slice(38, 42)}
                 </Button>
             ) : (
-                <Button
+                <Button 
                     className='MetamaskConnect'
+                    variant="soft"
+                    size="lg"
                     onClick={connectMetamask}
                 >
                     Connect to Metamask

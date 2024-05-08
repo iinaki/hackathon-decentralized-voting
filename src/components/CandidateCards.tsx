@@ -2,9 +2,6 @@ import React, { useState, useEffect } from 'react'
 import CandidateCard from './CandidateCard';
 
 import { CssVarsProvider, CssBaseline, Typography, Button, Box } from '@mui/joy';
-import List from '@mui/joy/List';
-import ListSubheader from '@mui/joy/ListSubheader';
-import ListItem from '@mui/joy/ListItem';
 
 import { dataPresidentCards } from './CandidateCardsData';
 import { dataSenadorCards } from './CandidateCardsData';
@@ -13,11 +10,12 @@ import { dataMercosurNacionalCards } from './CandidateCardsData';
 import { dataMercosurRegionalCards } from './CandidateCardsData';
 
 import { CandidatesPicked, Candidate, emptyCandidate } from './Vote';
+import CandidateCardsHeader from './CandidateCardsHeader';
 
 type CandidateCardsProps = {
   candidatesPicked: CandidatesPicked,
   setCandidatesPicked: (candidatesPicked: CandidatesPicked) => void
-}
+};
 
 const CandidateCards: React.FunctionComponent<CandidateCardsProps> = ({ candidatesPicked, setCandidatesPicked }) => {
   const [presidentCards, setPresidentCards] = useState<Candidate[]>([]);
@@ -27,38 +25,73 @@ const CandidateCards: React.FunctionComponent<CandidateCardsProps> = ({ candidat
   const [mercosurRegionalCards, setMercosurRegionalCards] = useState<Candidate[]>([]);
 
   const handleCardPickPresident = (candidate: Candidate) => {
-    setCandidatesPicked({
-      ...candidatesPicked,
-      'presidente': candidate
-    });
-  }
-
-  const handleCardPickDiputados = (candidate: Candidate) => {
-    setCandidatesPicked({
-      ...candidatesPicked,
-      'diputados': candidate
-    });
-  }
-
-  const handleCardPickSenadores = (candidate: Candidate) => {
-    setCandidatesPicked({
-      ...candidatesPicked,
-      'senadores': candidate
-    });
+    if (candidatesPicked.presidente == candidate) {
+      setCandidatesPicked({
+        ...candidatesPicked,
+        'presidente': emptyCandidate
+      });
+    } else {
+      setCandidatesPicked({
+        ...candidatesPicked,
+        'presidente': candidate
+      });
+    }
   }
 
   const handleCardPickMercosurNacional = (candidate: Candidate) => {
-    setCandidatesPicked({
-      ...candidatesPicked,
-      'mercosurNacional': candidate
-    });
+    if (candidatesPicked.mercosurNacional == candidate) {
+      setCandidatesPicked({
+        ...candidatesPicked,
+        'mercosurNacional': emptyCandidate
+      });
+    } else {
+      setCandidatesPicked({
+        ...candidatesPicked,
+        'mercosurNacional': candidate
+      });
+    }
+  }
+
+  const handleCardPickSenadores = (candidate: Candidate) => {
+    if (candidatesPicked.senadores == candidate) {
+      setCandidatesPicked({
+        ...candidatesPicked,
+        'senadores': emptyCandidate
+      });
+    } else {
+      setCandidatesPicked({
+        ...candidatesPicked,
+        'senadores': candidate
+      });
+    }
+  }
+
+  const handleCardPickDiputados = (candidate: Candidate) => { 
+    if (candidatesPicked.diputados == candidate) {
+      setCandidatesPicked({
+        ...candidatesPicked,
+        'diputados': emptyCandidate
+      });
+    } else {
+      setCandidatesPicked({
+        ...candidatesPicked,
+        'diputados': candidate
+      });
+    }
   }
 
   const handleCardPickMercosurRegional = (candidate: Candidate) => {
-    setCandidatesPicked({
-      ...candidatesPicked,
-      'mercosurRegional': candidate
-    });
+    if (candidatesPicked.mercosurRegional == candidate) {
+      setCandidatesPicked({
+        ...candidatesPicked,
+        'mercosurRegional': emptyCandidate
+      });
+    } else {
+      setCandidatesPicked({
+        ...candidatesPicked,
+        'mercosurRegional': candidate
+      });
+    }
   }
 
   useEffect(() => {
@@ -72,34 +105,42 @@ const CandidateCards: React.FunctionComponent<CandidateCardsProps> = ({ candidat
   return (
     <CssVarsProvider>
       <CssBaseline />
-        <Box>
+        <Box sx={{ backgroundColor: '#CDE8E5' }} >
           <Box>
-            <List
-              sx={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                gap: 1,
-                color: 'white',
-                backgroundColor: 'black',
-                padding: '1rem',
-                borderRadius: '10px'
-              }}
-            >
-              <ListItem nested sx={{ display: 'flex', align: 'justify-content-center'}}>
-                    <ListSubheader sx={{ 
-                      letterSpacing: '2px', fontWeight: '800', fontSize: '1.5rem', color: 'white'
-                     }}>
-                        Presidentes
-                    </ListSubheader>
-              </ListItem>
-            </List>
+            <CandidateCardsHeader text={'Presidentes'} />
+              <div className='container d-flex justify-content-center align-items-center h-100'>
+                <div className='row'>
+                  {
+                    presidentCards.map((card, i) => (
+                      i < 3 && ( 
+                        <div className='col-md-4 my-2' key={card.lista}>
+                          <CandidateCard candidate={card} handleCardPick={handleCardPickPresident} cardPicked={ card == candidatesPicked.presidente } />
+                        </div>
+                    )))
+                  }
+                </div>
+              </div>
+              <div className='container d-flex justify-content-center align-items-center h-100'>
+                <div className='row'>
+                {
+                    presidentCards.map((card, i) => (
+                      i >= 3 && ( 
+                      <div className='col-md-6 my-2' key={card.lista}>
+                        <CandidateCard candidate={card} handleCardPick={handleCardPickPresident} cardPicked={ card == candidatesPicked.presidente } />
+                      </div>
+                    )))
+                  }
+                </div>
+              </div>
+          </Box>
+          <Box>
+            <CandidateCardsHeader text={'Representantes en el Mercosur a nivel Nacional'} />
             <div className='container d-flex justify-content-center align-items-center h-100'>
               <div className='row'>
                 {
-                  presidentCards.map((card, i) => (
+                  mercosurNacionalCards.map((card, i) => (
                     i < 3 && ( <div className='col-md-4 my-2' key={card.lista}>
-                      <CandidateCard candidate={card} handleCardPick={handleCardPickPresident} />
+                      <CandidateCard candidate={card} handleCardPick={handleCardPickMercosurNacional} cardPicked={ card == candidatesPicked.mercosurNacional } />
                     </div>
                   )))
                 }
@@ -108,9 +149,9 @@ const CandidateCards: React.FunctionComponent<CandidateCardsProps> = ({ candidat
             <div className='container d-flex justify-content-center align-items-center h-100'>
               <div className='row'>
                 {
-                  presidentCards.map((card, i) => (
+                  mercosurNacionalCards.map((card, i) => (
                     i >= 3 && ( <div className='col-md-6 my-2' key={card.lista}>
-                      <CandidateCard candidate={card} handleCardPick={handleCardPickPresident} />
+                      <CandidateCard candidate={card} handleCardPick={handleCardPickMercosurNacional} cardPicked={ card == candidatesPicked.mercosurNacional } />
                     </div>
                   )))
                 }
@@ -118,32 +159,13 @@ const CandidateCards: React.FunctionComponent<CandidateCardsProps> = ({ candidat
             </div>
           </Box>
           <Box>
-            <List
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  gap: 1,
-                  color: 'white',
-                  backgroundColor: 'black',
-                  padding: '1rem',
-                  borderRadius: '10px'
-                }}
-              >
-                <ListItem nested sx={{ display: 'flex', align: 'justify-content-center'}}>
-                      <ListSubheader sx={{ 
-                        letterSpacing: '2px', fontWeight: '800', fontSize: '1.5rem', color: 'white'
-                      }}>
-                          Senadores
-                      </ListSubheader>
-                </ListItem>
-              </List>
+              <CandidateCardsHeader text={'Senadores'} />
             <div className='container d-flex justify-content-center align-items-center h-100'>
               <div className='row'>
                 {
                   senadoresCards.map(card => (
                     <div className='col-md-3 my-2' key={card.lista}>
-                      <CandidateCard candidate={card} handleCardPick={handleCardPickSenadores} />
+                      <CandidateCard candidate={card} handleCardPick={handleCardPickSenadores} cardPicked={ card == candidatesPicked.senadores } />
                     </div>
                   ))
                 }
@@ -151,32 +173,13 @@ const CandidateCards: React.FunctionComponent<CandidateCardsProps> = ({ candidat
             </div>
           </Box>
           <Box>
-            <List
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  gap: 1,
-                  color: 'white',
-                  backgroundColor: 'black',
-                  padding: '1rem',
-                  borderRadius: '10px'
-                }}
-              >
-                <ListItem nested sx={{ display: 'flex', align: 'justify-content-center'}}>
-                      <ListSubheader sx={{ 
-                        letterSpacing: '2px', fontWeight: '800', fontSize: '1.5rem', color: 'white'
-                      }}>
-                          Diputados
-                      </ListSubheader>
-                </ListItem>
-              </List>
+            <CandidateCardsHeader text={'Diputados'} />
             <div className='container d-flex justify-content-center align-items-center h-100'>
               <div className='row'>
                 {
                   diputadosCards.map(card => (
                     <div className='col-md-3 my-2' key={card.lista}>
-                      <CandidateCard candidate={card} handleCardPick={handleCardPickDiputados} />
+                      <CandidateCard candidate={card} handleCardPick={handleCardPickDiputados} cardPicked={ card == candidatesPicked.diputados } />
                     </div>
                   ))
                 }
@@ -184,76 +187,13 @@ const CandidateCards: React.FunctionComponent<CandidateCardsProps> = ({ candidat
             </div>
           </Box>
           <Box>
-            <List
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  gap: 1,
-                  color: 'white',
-                  backgroundColor: 'black',
-                  padding: '1rem',
-                  borderRadius: '10px'
-                }}
-              >
-                <ListItem nested sx={{ display: 'flex', align: 'justify-content-center'}}>
-                      <ListSubheader sx={{ 
-                        letterSpacing: '2px', fontWeight: '800', fontSize: '1.5rem', color: 'white'
-                      }}>
-                          Representantes en el Mercosur a nivel Nacional
-                      </ListSubheader>
-                </ListItem>
-              </List>
-            <div className='container d-flex justify-content-center align-items-center h-100'>
-              <div className='row'>
-                {
-                  mercosurNacionalCards.map((card, i) => (
-                    i < 3 && ( <div className='col-md-4 my-2' key={card.lista}>
-                      <CandidateCard candidate={card} handleCardPick={handleCardPickMercosurNacional} />
-                    </div>
-                  )))
-                }
-              </div>
-            </div>
-            <div className='container d-flex justify-content-center align-items-center h-100'>
-              <div className='row'>
-                {
-                  mercosurNacionalCards.map((card, i) => (
-                    i >= 3 && ( <div className='col-md-6 my-2' key={card.lista}>
-                      <CandidateCard candidate={card} handleCardPick={handleCardPickMercosurNacional} />
-                    </div>
-                  )))
-                }
-              </div>
-            </div>
-          </Box>
-          <Box>
-            <List
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    gap: 1,
-                    color: 'white',
-                    backgroundColor: 'black',
-                    padding: '1rem',
-                    borderRadius: '10px'
-                  }}
-                >
-                  <ListItem nested sx={{ display: 'flex', align: 'justify-content-center'}}>
-                        <ListSubheader sx={{ 
-                          letterSpacing: '2px', fontWeight: '800', fontSize: '1.5rem', color: 'white'
-                        }}>
-                            Representantes en el Mercosur a nivel Regional
-                        </ListSubheader>
-                  </ListItem>
-                </List>
+            <CandidateCardsHeader text={'Representantes en el Mercosur a nivel Regional'} />
             <div className='container d-flex justify-content-center align-items-center h-100'>
               <div className='row'>
                 {
                   mercosurRegionalCards.map(card => (
                     <div className='col-md-3 my-2' key={card.lista}>
-                      <CandidateCard candidate={card} handleCardPick={handleCardPickMercosurRegional} />
+                      <CandidateCard candidate={card} handleCardPick={handleCardPickMercosurRegional} cardPicked={ card == candidatesPicked.mercosurRegional } />
                     </div>
                   ))
                 }

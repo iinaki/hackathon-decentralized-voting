@@ -4,6 +4,8 @@ import { Web3 } from 'web3';
 
 import { CssVarsProvider, CssBaseline, Typography, Button, Box } from '@mui/joy';
 
+import KeyboardArrowRight from '@mui/icons-material/KeyboardArrowRight';
+
 import '../App.css';
 import CandidateCards from './CandidateCards';
 import Navigation from './Navigation';
@@ -82,13 +84,28 @@ const Vote = () => {
       {/* <TabsRouter /> */}
       <CssVarsProvider>
         <CssBaseline />
-        <Box sx={{ p: 4 }}>
+        <Box >
           <Navigation account={account} setAccount={setAccount} />
         </Box>
         <Box>
           <CandidateCards candidatesPicked={candidatesPicked} setCandidatesPicked={setCandidatesPicked} />
         </Box>
+        <Box sx={{
+                display: 'flex',
+                justifyContent: 'center',
+                gap: 1,
+                color: 'white',
+                backgroundColor: 'black',
+                padding: '1rem'
+              }}>
+            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+              <Button endDecorator={<KeyboardArrowRight />} color="success" size='lg'>
+                Enviar Voto
+              </Button>
+            </Box>
+        </Box>
       </CssVarsProvider>
+      
     </div>
   );
 };
