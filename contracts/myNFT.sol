@@ -30,8 +30,8 @@ contract Vote is ERC721, ChainlinkClient {
     event VoteMinted(address indexed minter, uint256 indexed tokenId, uint256 option, string president);
     event VoteRequested(bytes32 indexed requestId, address indexed voter, string hash_dni);
     event VoteFulfilled(bytes32 indexed requestId, bool isValid);
-    event PostRequestSent(bytes32 indexed requestId, string hash_dni);
-    event PostResponseReceived(bytes32 indexed requestId, bytes32 response);
+    event PutRequestSent(bytes32 indexed requestId, string hash_dni);
+    event PutResponseReceived(bytes32 indexed requestId, bytes32 response);
 
     function initializePresidents() private {
         _presidentVotes["132"] = 0;
@@ -81,7 +81,7 @@ contract Vote is ERC721, ChainlinkClient {
         jobId = _jobId;
         postJobId = _postJobId;
         fee = _fee;
-        
+
         initializePresidents();
         initializeMercosurNacional();
         initializeSenadores();
@@ -117,22 +117,22 @@ contract Vote is ERC721, ChainlinkClient {
         delete requestIdToCandidates[_requestId];
         delete requestIdToSender[_requestId];
 
-        // Enviar solicitud POST para indicar que el usuario ha votado
-        sendPostRequest(requestIdToHashDni[_requestId]);
+        // Enviar solicitud PUT para indicar que el usuario ha votado
+        sendPutRequest(requestIdToHashDni[_requestId]);
         delete requestIdToHashDni[_requestId];
     }
 
-    function sendPostRequest(string memory hash_dni) private {
-        Chainlink.Request memory request = buildChainlinkRequest(postJobId, address(this), this.handlePostResponse.selector);
-        request.add("post", string(abi.encodePacked("https://dvote-api.onrender.com/users/", hash_dni)));
+    function sendPutRequest(string memory hash_dni) private {
+        Chainlink.Request memory request = buildChainlinkRequest(putJobId, address(this), this.handlePutResponse.selector);
+        request.add("put", string(abi.encodePacked("https://dvote-api.onrender.com/users/", hash_dni)));
         request.add("body", "{}");  // Si necesitas enviar un cuerpo en particular, ajusta este valor
 
         bytes32 requestId = sendChainlinkRequestTo(oracle, request, fee);
-        emit PostRequestSent(requestId, hash_dni);
+        emit PutRequestSent(requestId, hash_dni);
     }
 
-    function handlePostResponse(bytes32 _requestId, bytes32) public recordChainlinkFulfillment(_requestId) {
-        emit PostResponseReceived(_requestId, data);
+    function handlePutResponse(bytes32 _requestId, bytes32 response) public recordChainlinkFulfillment(_requestId) {
+        emit PutResponseReceived(_requestId, response);
     }
     
 
