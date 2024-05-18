@@ -75,11 +75,13 @@ contract Vote is ERC721, ChainlinkClient {
         _mercosurRegionalVotes["blanco"] = 0;
     }
 
-    constructor(address _oracle, bytes32 _jobId, uint256 _fee, address _link) ERC721("Vote", "VTO") {
+    constructor(address _oracle, bytes32 _jobId, bytes32 _postJobId, uint256 _fee, address _link) ERC721("Vote", "VTO") {
         setChainlinkToken(_link);
         oracle = _oracle;
         jobId = _jobId;
+        postJobId = _postJobId;
         fee = _fee;
+        
         initializePresidents();
         initializeMercosurNacional();
         initializeSenadores();
