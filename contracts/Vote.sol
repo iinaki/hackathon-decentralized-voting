@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.26;
 
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {Counters} from "@openzeppelin/contracts@4.6.0/utils/Counters.sol";
@@ -12,6 +12,14 @@ import {FunctionsRequest} from "@chainlink/contracts/src/v0.8/functions/v1_0_0/l
 contract Vote is ERC721, FunctionsClient, ConfirmedOwner {
     using Counters for Counters.Counter;
     using FunctionsRequest for FunctionsRequest.Request;
+
+    struct VoterInfo {
+        address addr;
+        string sha_dni;
+        bool hasVoted;
+        string lugar_residencia;
+        string[] candidates;
+    }
 
     Counters.Counter public tokenIdCounter;
     // address private oracle;
@@ -54,7 +62,7 @@ contract Vote is ERC721, FunctionsClient, ConfirmedOwner {
         0x66756e2d657468657265756d2d7365706f6c69612d3100000000000000000000;
 
     // COMPLETAR CON SUBSCRIPTION ID DE LA FUNCTION QUE CREAMOS
-    uint64 subcriptionId = 1;
+    uint64 subscriptionId = 1;
 
     mapping(string => uint256) private _presidentVotes;
     mapping(string => uint256) private _mercosurNacionalVotes;
@@ -63,16 +71,18 @@ contract Vote is ERC721, FunctionsClient, ConfirmedOwner {
     mapping(string => uint256) private _mercosurRegionalVotes;
 
     mapping(address => bool) private _hasMinted;
-    mapping(bytes32 => string[]) private requestIdToCandidates;
-    mapping(bytes32 => address) private requestIdToSender;
-    mapping(bytes32 => string) private requestIdToHashDni;
+    mapping(bytes32 => VoterInfo) public voterInfo;
 
-    // Evento que se emite cuando se acuña un nuevo token
-    event VoteMinted(address indexed minter, uint256 indexed tokenId, uint256 option, string president);
     event VoteRequested(bytes32 indexed requestId, address indexed voter, string hash_dni);
-    event VoteFulfilled(bytes32 indexed requestId, bool isValid);
+    event VoteMinted(uint256 tokenId, address indexed voter, string[] candidates);
+    event VoteFulfilled(bytes32 indexed requestId, address indexed voter, string hash_dni);
     event PutRequestSent(bytes32 indexed requestId, string hash_dni);
     event PutResponseReceived(bytes32 indexed requestId, bytes32 response);
+    event DecodedGetResponse(bytes32 indexed requestId, uint256 voter_id, string sha_dni, bool hasVoted, string lugar_residencia);
+
+    error UnexpectedRequestID(bytes32 requestId);
+    error VoterHasAlreadyVoted(string sha_dni);
+    error AddressHasAlreadyVoted(address voter);
 
     function initializePresidents() private {
         _presidentVotes["132"] = 0;
@@ -116,7 +126,7 @@ contract Vote is ERC721, FunctionsClient, ConfirmedOwner {
         _mercosurRegionalVotes["blanco"] = 0;
     }
 
-    function votesAreValid(string[] memory candidates) public returns bool {
+    function votesAreValid(string[] memory candidates) pure  public returns (bool) {
         for (uint256 i = 0; i < candidates.length; i++) {
             if (compareStrings(candidates[i], "132") ||
                 compareStrings(candidates[i], "133") ||
@@ -136,7 +146,7 @@ contract Vote is ERC721, FunctionsClient, ConfirmedOwner {
         return true;
     }
 
-    constructor(address _oracle, bytes32 _jobId, bytes32 _postJobId, uint256 _fee, address _link) ERC721("Vote", "VTO") FunctionsClient(router) ConfirmedOwner(msg.sender) {
+    constructor() ERC721("Vote", "VTO") FunctionsClient(router) ConfirmedOwner(msg.sender) {
         initializePresidents();
         initializeMercosurNacional();
         initializeSenadores();
@@ -144,14 +154,18 @@ contract Vote is ERC721, FunctionsClient, ConfirmedOwner {
         initializeMercosurRegional();
     }
 
-    function vote(string memory hash_dni, string[] memory candidates) public {
-        require(!_hasMinted[msg.sender], "Address has already voted");
+    function vote(string memory sha_dni, string[] memory candidates) public {
+        if (_hasMinted[msg.sender]) {
+            revert AddressHasAlreadyVoted(msg.sender);
+        }
 
-        bytes32 requestId = sendGetRequest(hash_dni)
+        bytes32 requestId = sendGetRequest(sha_dni);
 
-        requestIdToCandidates[requestId] = candidates;
-        requestIdToSender[requestId] = msg.sender;
-        requestIdToHashDni[requestId] = hash_dni; 
+        voterInfo[requestId].candidates = candidates;
+        voterInfo[requestId].addr = msg.sender;
+        voterInfo[requestId].sha_dni = sha_dni; 
+
+        emit VoteRequested(requestId, msg.sender, sha_dni);
     }
     
     function fulfillRequest(
@@ -159,52 +173,40 @@ contract Vote is ERC721, FunctionsClient, ConfirmedOwner {
         bytes memory response,
         bytes memory err
     ) internal override {
-        if (!requestIdToSender[requestId]) {
+        if (voterInfo[requestId].addr == address(0)) {
             revert UnexpectedRequestID(requestId); // Check if request IDs match
         }
 
-        address voter = requestIdToSender[_requestId];
-        string memory responseString = string(response);
+        (
+            uint256 _voter_id,
+            string memory _sha_dni,
+            bool _hasVoted,
+            string memory _lugar_residencia
+        ) = abi.decode(response, (uint256, string, bool, string));
 
-        if (response.length > 0) {
-            (
-                uint256 _voter_id,
-                string memory _sha_dni,
-                bool _hasVoted,
-                string memory _lugar_residencia
-            ) = abi.decode(response, (uint256, string, bool, string));
+        voterInfo[requestId].hasVoted = _hasVoted;
+        voterInfo[requestId].lugar_residencia = _lugar_residencia;
 
-            requestIdToGetResponse[_requestId] = {
-                voter_id: _voter_id,
-                sha_dni: _sha_dni,
-                hasVoted: _hasVoted,
-                lugar_residencia: _lugar_residencia
-            };
+        emit DecodedGetResponse(
+            requestId,
+            _voter_id,
+            _sha_dni,
+            _hasVoted,
+            _lugar_residencia
+        );
 
-            emit DecodedResponse(
-                requestId,
-                _voter_id,
-                _sha_dni,
-                _hasVoted,
-                _lugar_residencia
-            );
+        if (_hasVoted) {
+            revert VoterHasAlreadyVoted(_sha_dni); // Check if request IDs match
         }
 
-        require(requestIdToGetResponse[_requestId].hasVoted, "Voter has already voted!");
+        mint(voterInfo[requestId].candidates, _lugar_residencia, voterInfo[requestId].addr);
 
-        mint(requestIdToCandidates[_requestId], requestIdToGetResponse[_requestId].lugar_residencia)
-
-        emit VoteFulfilled(_requestId, hasVoted);
-
-        //Limpiar los mapeos después de su uso
-        delete requestIdToCandidates[_requestId];
-        delete requestIdToSender[_requestId];
+        emit VoteFulfilled(requestId, voterInfo[requestId].addr, voterInfo[requestId].sha_dni);
 
         // Enviar solicitud PUT para indicar que el usuario ha votado
-        sendPutRequest(requestIdToHashDni[_requestId]);
-        //Limpiar los mapeos después de su uso
-        delete requestIdToHashDni[_requestId];
-        delete requestIdToGetResponse[_requestId];
+        bytes32 putRequestId = sendPutRequest(voterInfo[requestId].sha_dni);
+
+        delete voterInfo[requestId];
     }
 
     function sendGetRequest(string memory hash_dni) private returns (bytes32){
@@ -216,7 +218,7 @@ contract Vote is ERC721, FunctionsClient, ConfirmedOwner {
 
         req.setArgs(args);
 
-        requestId = _sendRequest(
+        bytes32 requestId = _sendRequest(
             req.encodeCBOR(),
             subscriptionId,
             gasLimit,
@@ -228,25 +230,33 @@ contract Vote is ERC721, FunctionsClient, ConfirmedOwner {
         return requestId;
     }
 
-    function sendPutRequest(string memory hash_dni) private {
-        Chainlink.Request memory request = buildChainlinkRequest(putJobId, address(this), this.handlePutResponse.selector);
-        request.add("put", string(abi.encodePacked("https://dvote-api.onrender.com/users/", hash_dni)));
-        request.add("body", "{}");  // Si necesitas enviar un cuerpo en particular, ajusta este valor
+    function sendPutRequest(string memory hash_dni) private returns (bytes32) {
+        FunctionsRequest.Request memory req;
+        req.initializeRequestForInlineJavaScript(putSource);
 
-        bytes32 requestId = sendChainlinkRequestTo(oracle, request, fee);
+        string[] memory args = new string[](1);
+        args[0] = hash_dni;
+
+        req.setArgs(args);
+
+        bytes32 requestId = _sendRequest(
+            req.encodeCBOR(),
+            subscriptionId,
+            gasLimit,
+            donID
+        );
+
         emit PutRequestSent(requestId, hash_dni);
+
+        return requestId;
     }
 
-    function handlePutResponse(bytes32 _requestId, bytes32 response) public recordChainlinkFulfillment(_requestId) {
-        emit PutResponseReceived(_requestId, response);
-    }
-
-    function mint(string[] memory candidates) private {
+    function mint(string[] memory candidates, string memory lugar_residencia, address voter) private {
         require(votesAreValid(candidates) , "Invalid option in the vote");
 
         uint256 tokenId = tokenIdCounter.current();
 
-        _safeMint(msg.sender, tokenId);
+        _safeMint(voter, tokenId);
 
         _presidentVotes[candidates[0]]++;
         _mercosurNacionalVotes[candidates[1]]++;
@@ -254,8 +264,8 @@ contract Vote is ERC721, FunctionsClient, ConfirmedOwner {
         _diputadosVotes[candidates[3]]++;
         _mercosurRegionalVotes[candidates[4]]++;
 
-        _hasMinted[msg.sender] = true;
-        emit VoteMinted(voter, tokenId, candidates);
+        _hasMinted[voter] = true;
+        emit VoteMinted(tokenId, voter, candidates);
         tokenIdCounter.increment();
     }
 
