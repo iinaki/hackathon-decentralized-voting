@@ -10,7 +10,7 @@ import '../App.css';
 import CandidateCards from './CandidateCards';
 import Navigation from './Navigation';
 
-import Election from '../abis/Election.json'
+import VoteABI from '../abis/Vote.json'
 
 import config from '../config.json';
 // import TabsRouter from './TabsRouter';
@@ -41,8 +41,9 @@ export const emptyCandidate = {
 
 const Vote = () => {
 
-  const [provider, setProvider] = useState(null)
-  const [account, setAccount] = useState('null');
+  const [provider, setProvider] = useState("null")
+  const [account, setAccount] = useState("null");
+
   const [candidatesPicked, setCandidatesPicked] = useState<CandidatesPicked>({
     'presidente': emptyCandidate,
     'senadores': emptyCandidate,
@@ -51,33 +52,50 @@ const Vote = () => {
     'mercosurRegional': emptyCandidate
   });
 
-  const voter_location = 'Buenos Aires';
-
   const loadBlockchainData = async () => {
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    setProvider(provider);
 
-    // const provider = new ethers.providers.Web3Provider(window.ethereum);
-    // setProvider(provider);
+    const network: string = await provider.getNetwork()
+    const contract_addr: string = config[network.chainId].vote.address;
 
-    // const network = await provider.getNetwork();
+    const vote_contract = new ethers.Contract(contract_addr, VoteABI, provider)
+  }
 
-    // const election = new ethers.Contract(config[network.chainId].election.address, Election, provider);
+  useEffect(() => {
+    loadBlockchainData()
+  }, [])
 
-    // const total_candidates = 9;
-
-    // const candidates = [];
-
-    // for (let i = 1; i <= total_candidates; i++) {
-    //   const uri = await realEstate.tokenURI(i)
-    //   const response = await fetch(uri)
-    //   const metadata = await response.json()
-    //   candidates.push(metadata)
-    // };
-    // setCandidates(candidates);
+  const sendVote = async () => {
+    if (!account || !provider) {
+      alert("Please connect your wallet");
+      return;
+    }
+  
+    const signer = provider.getSigner();
+    const network = await provider.getNetwork();
+    const contract_addr = config[network.chainId].vote.address;
+  
+    const vote_contract = new ethers.Contract(contract_addr, VoteABI, signer);
+  
+    try {
+      const tx = await vote_contract.vote(
+        candidatesPicked.presidente.lista,
+        candidatesPicked.senadores.lista,
+        candidatesPicked.diputados.lista,
+        candidatesPicked.mercosurNacional.lista,
+        candidatesPicked.mercosurRegional.lista
+      );
+  
+      await tx.wait();
+      alert("Vote sent successfully!");
+    } catch (error) {
+      console.error(error);
+      alert("Failed to send vote");
+    }
   };
+  
 
-  // useEffect(() => {
-  //   loadBlockchainData()
-  // }, []);
 
   return (
     <div className="Vote">
@@ -99,7 +117,7 @@ const Vote = () => {
                 padding: '1rem'
               }}>
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-              <Button endDecorator={<KeyboardArrowRight />} color="success" size='lg'>
+              <Button endDecorator={<KeyboardArrowRight />} color="success" size='lg' onClick={sendVote}>
                 Enviar Voto
               </Button>
             </Box>

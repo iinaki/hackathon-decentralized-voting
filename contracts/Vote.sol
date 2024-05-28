@@ -22,38 +22,30 @@ contract Vote is ERC721, FunctionsClient, ConfirmedOwner {
     }
 
     Counters.Counter public tokenIdCounter;
-    // address private oracle;
-    // bytes32 private jobId;
-    // uint256 private fee;
 
     // Hardcodeado para Sepolia
     address router = 0xb83E47C2bC239B3bf370bc41e1459A34b41238D0; 
 
-    string getSource =
+    string source =
         "const sha_dni = args[0];"
         "const url = 'https://dvote-api.onrender.com/users/' + sha_dni;"
-        "const response = await Functions.makeHttpRequest({"
+        "const responseGet = await Functions.makeHttpRequest({"
         "url: url,"
         'method: "GET"'
         "});"
-        "if (response.error) {"
-        "throw Error('Request failed');"
+        "if (responseGet.error) {"
+        'throw Error("Failed to get voter request");'
         "}"
-        "const { data } = response;"
-        "return Functions.encodeString(data);";
-
-    string putSource =
-        "const sha_dni = args[0];"
-        "const url = 'https://dvote-api.onrender.com/users/' + sha_dni;"
-        "const response = await Functions.makeHttpRequest({"
+        "const dataGet = responseGet.data;"
+        "const responsePut = await Functions.makeHttpRequest({"
         "url: url,"
-        'method: "GET"'
+        'method: "PUT"'
         "});"
-        "if (response.error) {"
-        "throw Error('Request failed');"
+        "if (responsePut.error) {"
+        'return Functions.encodeString("bsas");'
         "}"
-        "const { data } = response;"
-        "return Functions.encodeString(data);";
+        "const dataPut = responsePut.data;"
+        "return Functions.encodeString(JSON.stringify(dataPut.lugar_residencia));";
 
     uint32 gasLimit = 300000;
 
@@ -62,7 +54,7 @@ contract Vote is ERC721, FunctionsClient, ConfirmedOwner {
         0x66756e2d657468657265756d2d7365706f6c69612d3100000000000000000000;
 
     // COMPLETAR CON SUBSCRIPTION ID DE LA FUNCTION QUE CREAMOS
-    uint64 subscriptionId = 1;
+    uint64 subscriptionId = 2838;
 
     mapping(string => uint256) private _presidentVotes;
     mapping(string => uint256) private _mercosurNacionalVotes;
@@ -70,15 +62,12 @@ contract Vote is ERC721, FunctionsClient, ConfirmedOwner {
     mapping(string => uint256) private _diputadosVotes;
     mapping(string => uint256) private _mercosurRegionalVotes;
 
-    mapping(address => bool) private _hasMinted;
     mapping(bytes32 => VoterInfo) public voterInfo;
 
     event VoteRequested(bytes32 indexed requestId, address indexed voter, string hash_dni);
     event VoteMinted(uint256 tokenId, address indexed voter, string[] candidates);
     event VoteFulfilled(bytes32 indexed requestId, address indexed voter, string hash_dni);
-    event PutRequestSent(bytes32 indexed requestId, string hash_dni);
-    event PutResponseReceived(bytes32 indexed requestId, bytes32 response);
-    event DecodedGetResponse(bytes32 indexed requestId, uint256 voter_id, string sha_dni, bool hasVoted, string lugar_residencia);
+    event DecodedResponse(bytes32 indexed requestId, string sha_dni, bool hasVoted, string lugar_residencia);
 
     error UnexpectedRequestID(bytes32 requestId);
     error VoterHasAlreadyVoted(string sha_dni);
@@ -128,18 +117,20 @@ contract Vote is ERC721, FunctionsClient, ConfirmedOwner {
 
     function votesAreValid(string[] memory candidates) pure  public returns (bool) {
         for (uint256 i = 0; i < candidates.length; i++) {
-            if (compareStrings(candidates[i], "132") ||
+            if ( i < 2 && (compareStrings(candidates[i], "132") ||
                 compareStrings(candidates[i], "133") ||
                 compareStrings(candidates[i], "134") ||
                 compareStrings(candidates[i], "135") ||
                 compareStrings(candidates[i], "136") ||
-                compareStrings(candidates[i], "501") ||
+                compareStrings(candidates[i], "blanco"))) {
+                continue;
+            } else if (i >= 2 && (compareStrings(candidates[i], "501") ||
                 compareStrings(candidates[i], "502") ||
                 compareStrings(candidates[i], "503") ||
                 compareStrings(candidates[i], "504") ||
-                compareStrings(candidates[i], "blanco")) {
+                compareStrings(candidates[i], "blanco")))
                 continue;
-            } else {
+            else {
                 return false;
             }
         }
@@ -155,11 +146,7 @@ contract Vote is ERC721, FunctionsClient, ConfirmedOwner {
     }
 
     function vote(string memory sha_dni, string[] memory candidates) public {
-        if (_hasMinted[msg.sender]) {
-            revert AddressHasAlreadyVoted(msg.sender);
-        }
-
-        bytes32 requestId = sendGetRequest(sha_dni);
+        bytes32 requestId = sendRequest(sha_dni);
 
         voterInfo[requestId].candidates = candidates;
         voterInfo[requestId].addr = msg.sender;
@@ -173,45 +160,35 @@ contract Vote is ERC721, FunctionsClient, ConfirmedOwner {
         bytes memory response,
         bytes memory err
     ) internal override {
+        if (err.length > 0) {
+            revert("Error in request");
+        }
+
         if (voterInfo[requestId].addr == address(0)) {
             revert UnexpectedRequestID(requestId); // Check if request IDs match
         }
 
-        (
-            uint256 _voter_id,
-            string memory _sha_dni,
-            bool _hasVoted,
-            string memory _lugar_residencia
-        ) = abi.decode(response, (uint256, string, bool, string));
+        string memory lugar_residencia = string(response);
 
-        voterInfo[requestId].hasVoted = _hasVoted;
-        voterInfo[requestId].lugar_residencia = _lugar_residencia;
+        voterInfo[requestId].lugar_residencia = lugar_residencia;
 
-        emit DecodedGetResponse(
+        emit DecodedResponse(
             requestId,
-            _voter_id,
-            _sha_dni,
-            _hasVoted,
-            _lugar_residencia
+            voterInfo[requestId].sha_dni,
+            true,
+            lugar_residencia
         );
 
-        if (_hasVoted) {
-            revert VoterHasAlreadyVoted(_sha_dni); // Check if request IDs match
-        }
-
-        mint(voterInfo[requestId].candidates, _lugar_residencia, voterInfo[requestId].addr);
+        mint(voterInfo[requestId].candidates, lugar_residencia, voterInfo[requestId].addr);
 
         emit VoteFulfilled(requestId, voterInfo[requestId].addr, voterInfo[requestId].sha_dni);
-
-        // Enviar solicitud PUT para indicar que el usuario ha votado
-        bytes32 putRequestId = sendPutRequest(voterInfo[requestId].sha_dni);
 
         delete voterInfo[requestId];
     }
 
-    function sendGetRequest(string memory hash_dni) private returns (bytes32){
+    function sendRequest(string memory hash_dni) private returns (bytes32){
         FunctionsRequest.Request memory req;
-        req.initializeRequestForInlineJavaScript(getSource);
+        req.initializeRequestForInlineJavaScript(source);
 
         string[] memory args = new string[](1);
         args[0] = hash_dni;
@@ -230,27 +207,6 @@ contract Vote is ERC721, FunctionsClient, ConfirmedOwner {
         return requestId;
     }
 
-    function sendPutRequest(string memory hash_dni) private returns (bytes32) {
-        FunctionsRequest.Request memory req;
-        req.initializeRequestForInlineJavaScript(putSource);
-
-        string[] memory args = new string[](1);
-        args[0] = hash_dni;
-
-        req.setArgs(args);
-
-        bytes32 requestId = _sendRequest(
-            req.encodeCBOR(),
-            subscriptionId,
-            gasLimit,
-            donID
-        );
-
-        emit PutRequestSent(requestId, hash_dni);
-
-        return requestId;
-    }
-
     function mint(string[] memory candidates, string memory lugar_residencia, address voter) private {
         require(votesAreValid(candidates) , "Invalid option in the vote");
 
@@ -264,7 +220,6 @@ contract Vote is ERC721, FunctionsClient, ConfirmedOwner {
         _diputadosVotes[candidates[3]]++;
         _mercosurRegionalVotes[candidates[4]]++;
 
-        _hasMinted[voter] = true;
         emit VoteMinted(tokenId, voter, candidates);
         tokenIdCounter.increment();
     }
@@ -276,4 +231,21 @@ contract Vote is ERC721, FunctionsClient, ConfirmedOwner {
         return (keccak256(abi.encodePacked((a))) ==
             keccak256(abi.encodePacked((b))));
     }
+
+    function getPresidentVotes(string memory option) public view returns (uint256) {
+        return _presidentVotes[option];
+    }
+    function getMercosurNacionalVotes(string memory option) public view returns (uint256) {
+        return _mercosurNacionalVotes[option];
+    }
+    function getSenadoresVotes(string memory option) public view returns (uint256) {
+        return _senadoresVotes[option];
+    }
+    function getDiputadosVotes(string memory option) public view returns (uint256) {
+        return _diputadosVotes[option];
+    }
+    function getMercosurRegionalVotes(string memory option) public view returns (uint256) {
+        return _mercosurRegionalVotes[option];
+    }
+
 }
