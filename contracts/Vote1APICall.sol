@@ -16,20 +16,26 @@ contract Vote is ERC721, FunctionsClient, ConfirmedOwner {
     struct VoterInfo {
         address addr;
         string sha_dni;
+        bool hasVoted;
         string[] candidates;
-        string lugar_residencia;
     }
 
     Counters.Counter public tokenIdCounter;
 
     // Hardcodeado para Sepolia
     address router = 0xb83E47C2bC239B3bf370bc41e1459A34b41238D0; 
-    address private immutable i_owner;
-    address private vote_checker;
 
     string source =
         "const sha_dni = args[0];"
         "const url = 'https://dvote-api.onrender.com/users/' + sha_dni;"
+        "const responseGet = await Functions.makeHttpRequest({"
+        "url: url,"
+        'method: "GET"'
+        "});"
+        "if (responseGet.error) {"
+        'throw Error("Failed to get voter request");'
+        "}"
+        "const dataGet = responseGet.data;"
         "const responsePut = await Functions.makeHttpRequest({"
         "url: url,"
         'method: "PUT"'
@@ -38,7 +44,7 @@ contract Vote is ERC721, FunctionsClient, ConfirmedOwner {
         'throw Error("Failed to update voter request");'
         "}"
         "const dataPut = responsePut.data;"
-        "return Functions.encodeString(JSON.stringify(dataPut.lugar_residencia));";
+        "return Functions.encodeUint256(dataGet.voto ? 1:0);";
 
     uint32 gasLimit = 300000;
 
@@ -61,9 +67,10 @@ contract Vote is ERC721, FunctionsClient, ConfirmedOwner {
     event VoteMinted(uint256 tokenId, address indexed voter, string[] candidates);
     event VoteFulfilled(bytes32 indexed requestId, address indexed voter, string sha_dni);
     event VoteNotFulfilled(bytes32 indexed requestId, string sha_dni);
+    event DecodedResponse(bytes32 indexed requestId, string sha_dni, bool hasVoted, string lugar_residencia);
 
     error UnexpectedRequestID(bytes32 requestId);
-    error NotOwner();
+    error VoterHasAlreadyVoted(string sha_dni);
 
     function initializePresidents() private {
         _presidentVotes["132"] = 0;
@@ -107,28 +114,44 @@ contract Vote is ERC721, FunctionsClient, ConfirmedOwner {
         _mercosurRegionalVotes["blanco"] = 0;
     }
 
+    function votesAreValid(string[] memory candidates) pure  public returns (bool) {
+        for (uint256 i = 0; i < candidates.length; i++) {
+            if ( i < 2 && (compareStrings(candidates[i], "132") ||
+                compareStrings(candidates[i], "133") ||
+                compareStrings(candidates[i], "134") ||
+                compareStrings(candidates[i], "135") ||
+                compareStrings(candidates[i], "136") ||
+                compareStrings(candidates[i], "blanco"))) {
+                continue;
+            } else if (i >= 2 && (compareStrings(candidates[i], "501") ||
+                compareStrings(candidates[i], "502") ||
+                compareStrings(candidates[i], "503") ||
+                compareStrings(candidates[i], "504") ||
+                compareStrings(candidates[i], "blanco")))
+                continue;
+            else {
+                return false;
+            }
+        }
+        return true;
+    }
+
     constructor() ERC721("Vote", "VTO") FunctionsClient(router) ConfirmedOwner(msg.sender) {
         initializePresidents();
         initializeMercosurNacional();
         initializeSenadores();
         initializeDiputados();
         initializeMercosurRegional();
-        i_owner = msg.sender;
     }
 
-    function mint(string[] memory candidates, address voter, string memory lugar_residencia) private {
-        uint256 tokenId = tokenIdCounter.current();
+    function vote(string memory sha_dni, string[] memory candidates) public {
+        bytes32 requestId = sendRequest(sha_dni);
 
-        _safeMint(voter, tokenId);
+        voterInfo[requestId].candidates = candidates;
+        voterInfo[requestId].addr = msg.sender;
+        voterInfo[requestId].sha_dni = sha_dni; 
 
-        _presidentVotes[candidates[0]]++;
-        _mercosurNacionalVotes[candidates[1]]++;
-        _senadoresVotes[candidates[2]]++;
-        _diputadosVotes[candidates[3]]++;
-        _mercosurRegionalVotes[candidates[4]]++;
-
-        emit VoteMinted(tokenId, voter, candidates);
-        tokenIdCounter.increment();
+        emit VoteRequested(requestId, msg.sender, sha_dni);
     }
     
     function fulfillRequest(
@@ -144,14 +167,23 @@ contract Vote is ERC721, FunctionsClient, ConfirmedOwner {
             revert UnexpectedRequestID(requestId); // Check if request IDs match
         }
 
-        string memory lugar_residencia = string(response);
+        uint256 user_already_voted = abi.decode(response, (uint256));
 
-        mint(voterInfo[requestId].candidates, voterInfo[requestId].addr, lugar_residencia);
+        if (user_already_voted == 1) {
+            string memory sha_dni = voterInfo[requestId].sha_dni;
+            delete voterInfo[requestId];
 
-        emit VoteFulfilled(requestId, voterInfo[requestId].addr, voterInfo[requestId].sha_dni);
+            emit VoteNotFulfilled(requestId, sha_dni);
 
-        delete voterInfo[requestId];
+            //revert(string(abi.encodePacked("User already voted ", sha_dni)));
+            return;
+        }else{
+            mint(voterInfo[requestId].candidates, voterInfo[requestId].addr);
 
+            emit VoteFulfilled(requestId, voterInfo[requestId].addr, voterInfo[requestId].sha_dni);
+
+            delete voterInfo[requestId];
+        }   
     }
 
     function sendRequest(string memory hash_dni) private returns (bytes32){
@@ -170,31 +202,29 @@ contract Vote is ERC721, FunctionsClient, ConfirmedOwner {
             donID
         );
 
+        emit VoteRequested(requestId, msg.sender, hash_dni);
+
         return requestId;
     }
 
-    function vote(address voter_address, string memory sha_dni, string[] memory candidates) public {
-        if(msg.sender != vote_checker){
-            revert NotOwner();
-        }
+    function mint(string[] memory candidates, address voter) private {
+        require(votesAreValid(candidates) , "Invalid option in the vote");
 
-        bytes32 requestId = sendRequest(sha_dni);
+        uint256 tokenId = tokenIdCounter.current();
 
-        voterInfo[requestId].candidates = candidates;
-        voterInfo[requestId].addr = voter_address;
-        voterInfo[requestId].sha_dni = sha_dni; 
+        _safeMint(voter, tokenId);
 
-        emit VoteRequested(requestId, voter_address, sha_dni);
+        _presidentVotes[candidates[0]]++;
+        _mercosurNacionalVotes[candidates[1]]++;
+        _senadoresVotes[candidates[2]]++;
+        _diputadosVotes[candidates[3]]++;
+        _mercosurRegionalVotes[candidates[4]]++;
+
+        emit VoteMinted(tokenId, voter, candidates);
+        tokenIdCounter.increment();
     }
 
-    function update_vote_checker(address new_vote_checker) public {
-        if(msg.sender != i_owner){
-            revert NotOwner();
-        }
-
-        vote_checker = new_vote_checker;
-    }
-
+    // helper function to compare strings
     function compareStrings(string memory a, string memory b)
         private pure returns (bool)
     {
