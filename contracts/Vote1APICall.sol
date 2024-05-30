@@ -2,14 +2,14 @@
 pragma solidity ^0.8.26;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {Counters} from "@openzeppelin/contracts@4.6.0/utils/Counters.sol";
 import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 import {FunctionsClient} from "@chainlink/contracts/src/v0.8/functions/v1_0_0/FunctionsClient.sol";
-import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/shared/access/ConfirmedOwner.sol";
 import {FunctionsRequest} from "@chainlink/contracts/src/v0.8/functions/v1_0_0/libraries/FunctionsRequest.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
-contract Vote is ERC721, ERC721URIStorage, FunctionsClient, ConfirmedOwner {
+contract Vote is ERC721, ERC721URIStorage, IERC721Receiver, FunctionsClient {
     using Counters for Counters.Counter;
     using FunctionsRequest for FunctionsRequest.Request;
 
@@ -17,14 +17,14 @@ contract Vote is ERC721, ERC721URIStorage, FunctionsClient, ConfirmedOwner {
         address addr;
         string sha_dni;
         uint256[] candidates;
-        string voteURI;
+        uint256 tokenId;
     }
 
     Counters.Counter public tokenIdCounter;
 
     // Hardcodeado para Sepolia
     address private immutable router = 0xb83E47C2bC239B3bf370bc41e1459A34b41238D0; 
-    address private immutable i_owner;
+    address private i_owner;
 
     string[] vote_images = [
         "https://bafybeif7boczaiaexk7h3gkhaxdxtz5azbmn2fvmnublrwu2q7vlungnsm.ipfs.w3s.link/132.jpg",
@@ -74,10 +74,8 @@ contract Vote is ERC721, ERC721URIStorage, FunctionsClient, ConfirmedOwner {
     mapping(string => bool) private hasVoted;
 
     event VoteRequested(bytes32 indexed requestId, address indexed voter, string sha_dni);
-    event VoteMinted(uint256 tokenId, address indexed voter, uint256[] candidates);
-    event VoteFulfilled(bytes32 indexed requestId, address indexed voter, string sha_dni);
+    event VoteFulfilled(bytes32 indexed requestId, address indexed voter, string sha_dni, uint256[] candidates);
     event VoteNotFulfilled(bytes32 indexed requestId, string sha_dni);
-    event DecodedResponse(bytes32 indexed requestId, string sha_dni, bool hasVoted, string lugar_residencia);
 
     error UnexpectedRequestID(bytes32 requestId);
     error VoterHasAlreadyVoted(string sha_dni);
@@ -125,6 +123,15 @@ contract Vote is ERC721, ERC721URIStorage, FunctionsClient, ConfirmedOwner {
         _mercosurRegionalVotes[0] = 0;
     }
 
+    constructor() ERC721("Vote", "VTO") FunctionsClient(router) {
+        initializePresidents();
+        initializeMercosurNacional();
+        initializeSenadores();
+        initializeDiputados();
+        initializeMercosurRegional();
+        i_owner = msg.sender;
+    }
+
     function votesAreValid(uint256[] memory candidates) pure public returns (bool) {
         for (uint256 i = 0; i < candidates.length; i++) {
             if ( i < 2 && (( candidates[i] >= 132 && candidates[i] <= 136 ) || candidates[i] == 0 )) {
@@ -137,68 +144,30 @@ contract Vote is ERC721, ERC721URIStorage, FunctionsClient, ConfirmedOwner {
         }
         return true;
     }
-
-    constructor() ERC721("Vote", "VTO") FunctionsClient(router) ConfirmedOwner(msg.sender) {
-        initializePresidents();
-        initializeMercosurNacional();
-        initializeSenadores();
-        initializeDiputados();
-        initializeMercosurRegional();
-        i_owner = msg.sender;
-    }
     
     function fulfillRequest(
         bytes32 requestId,
         bytes memory response,
         bytes memory err
     ) internal override {
+        VoterInfo memory voter = voterInfo[requestId];
+        if (voter.addr == address(0)) {
+            revert UnexpectedRequestID(requestId);
+        }
+
         if (err.length > 0) {
-            revert("Error in request");
+            _burn(voter.tokenId);
+        } else {
+            _presidentVotes[voter.candidates[0]]++;
+            _mercosurNacionalVotes[voter.candidates[1]]++;
+            _senadoresVotes[voter.candidates[2]]++;
+            _diputadosVotes[voter.candidates[3]]++;
+            _mercosurRegionalVotes[voter.candidates[4]]++;
+
+            hasVoted[voter.sha_dni] = true;
         }
-
-        if (voterInfo[requestId].addr == address(0)) {
-            revert UnexpectedRequestID(requestId); // Check if request IDs match
-        }
-
-        string memory lugar_residencia = string(response);
-
-        mint(voterInfo[requestId].candidates, voterInfo[requestId].addr, voterInfo[requestId].voteURI, lugar_residencia);
-
-        hasVoted[voterInfo[requestId].sha_dni] = true;
-
-        emit VoteFulfilled(requestId, voterInfo[requestId].addr, voterInfo[requestId].sha_dni);
 
         delete voterInfo[requestId]; 
-    }
-
-    function setImage(uint256 president) view  private returns (string memory image) {
-        if (president == 132) {
-            return vote_images[0];
-        } else if (president == 133) {
-            return vote_images[1];
-        } else if (president == 134) {
-            return vote_images[2];
-        } else if (president == 135) {
-            return vote_images[3];
-        } else {
-            return vote_images[4];
-        }
-    }
-
-    function mint(uint256[] memory candidates, address voter, string memory voteURI, string memory lugar_residencia) private {
-        uint256 tokenId = tokenIdCounter.current();
-
-        _safeMint(voter, tokenId);
-        _setTokenURI(tokenId, voteURI);
-
-        _presidentVotes[candidates[0]]++;
-        _mercosurNacionalVotes[candidates[1]]++;
-        _senadoresVotes[candidates[2]]++;
-        _diputadosVotes[candidates[3]]++;
-        _mercosurRegionalVotes[candidates[4]]++;
-
-        emit VoteMinted(tokenId, voter, candidates);
-        tokenIdCounter.increment();
     }
 
     function sendRequest(string memory hash_dni) private returns (bytes32){
@@ -222,32 +191,60 @@ contract Vote is ERC721, ERC721URIStorage, FunctionsClient, ConfirmedOwner {
         return requestId;
     }
 
-    function createVoteURI(uint256[] memory candidates) view private returns (string memory) {
-        string memory image = setImage(candidates[0]);
+    function mint(address voter, string memory voteURI) private returns (uint256) {
+        uint256 tokenId = tokenIdCounter.current();
+
+        _safeMint(voter, tokenId, "");
+        _setTokenURI(tokenId, voteURI);
+
+        tokenIdCounter.increment();
+
+        return tokenId;
+    }
+
+    function setImage(uint256 president) view  private returns (string memory image) {
+        if (president == 132) {
+            return vote_images[0];
+        } else if (president == 133) {
+            return vote_images[1];
+        } else if (president == 134) {
+            return vote_images[2];
+        } else if (president == 135) {
+            return vote_images[3];
+        } else {
+            return vote_images[4];
+        }
+    }
+
+    function createVoteURI(uint256[] memory candidates, string memory sha_dni) view private returns (string memory) {
+        string memory image_candidate = setImage(candidates[0]);
 
         string memory uri = Base64.encode(
             bytes(
                 string(
                     abi.encodePacked(
                         '{"name": "Voto de Elecciones Presidenciales Argentina 2023 - 1ra Vuelta",'
-                        '"description": "Este es un voto de Elecciones Presidenciales de Argentina realizadas en 2023",',
-                        '"image": "', image, '",'
-                        '"attributes": [',
-                            '{"trait_type": "Voto de Presidente",',
-                            '"value": ', Strings.toString(candidates[0]),'}',
-                            ',{"trait_type": "Voto de Mercosur Nacional",',
-                            '"value": ', Strings.toString(candidates[1]),'}',
-                            ',{"trait_type": "Voto de Senadores",',
-                            '"value": ', Strings.toString(candidates[2]),'}',
-                            ',{"trait_type": "Voto de Diptados",',
-                            '"value": ', Strings.toString(candidates[3]),'}',
-                            ',{"trait_type": "Voto de Mercosur Regional",',
-                            '"value": ', Strings.toString(candidates[4]),'}'
-                        ']}'
+                        '"description": "Esto es valido como constancia de voto en las Elecciones Presidenciales de Argentina realizadas en 2023 - 1ra Vuelta, minteado por el ciudadano con clave encriptada ', sha_dni, '",',
+                        '"image": "', image_candidate, '"'
+                        '}'
                     )
                 )
             )
         );
+
+        // '"attributes": [',
+        //                     '{"trait_type": "Voto de Presidente",',
+        //                     '"value": candidates[0]}',
+        //                     '{"trait_type": "Voto de Presidente",',
+        //                     '"value": candidates[0]}',
+        //                     '{"trait_type": "Voto de Presidente",',
+        //                     '"value": candidates[0]}',
+        //                     '{"trait_type": "Voto de Presidente",',
+        //                     '"value": candidates[0]}',
+        //                     '{"trait_type": "Voto de Presidente",',
+        //                     '"value": candidates[0]}',
+        //                 ']
+
         
         string memory finalTokenURI = string(
             abi.encodePacked("data:application/json;base64,", uri)
@@ -256,31 +253,28 @@ contract Vote is ERC721, ERC721URIStorage, FunctionsClient, ConfirmedOwner {
         return finalTokenURI;
     }
 
-    function vote(string memory sha_dni, uint256[] memory candidates) public {
-        if (!votesAreValid(candidates)){
+    function vote(
+        string memory sha_dni,
+        uint256[] memory candidates
+    ) public {
+        if (hasVoted[sha_dni]) {
+            revert VoterHasAlreadyVoted(sha_dni);
+        }
+        if (!votesAreValid(candidates)) {
             revert InvalidCandidateOptions(candidates);
         }
 
-        if (hasVoted[sha_dni]){
-            revert VoterHasAlreadyVoted(sha_dni);
-        }
-
-        string memory voteURI = createVoteURI(candidates);
+        string memory voteURI = createVoteURI(candidates, sha_dni);
+        uint256 tokenId = mint(msg.sender, voteURI);
 
         bytes32 requestId = sendRequest(sha_dni);
 
-        voterInfo[requestId].candidates = candidates;
-        voterInfo[requestId].addr = msg.sender;
-        voterInfo[requestId].sha_dni = sha_dni; 
-        voterInfo[requestId].voteURI = voteURI;
-    }
-
-    // helper function to compare strings
-    function compareStrings(string memory a, string memory b)
-        private pure returns (bool)
-    {
-        return (keccak256(abi.encodePacked((a))) ==
-            keccak256(abi.encodePacked((b))));
+        voterInfo[requestId] = VoterInfo({
+            addr: msg.sender,
+            sha_dni: sha_dni,
+            candidates: candidates,
+            tokenId: tokenId
+        });
     }
 
     function getPresidentVotes(uint256 option) public view returns (uint256) {
@@ -311,5 +305,9 @@ contract Vote is ERC721, ERC721URIStorage, FunctionsClient, ConfirmedOwner {
 
     function supportsInterface(bytes4 interfaceId) public view override(ERC721, ERC721URIStorage) returns (bool) {
         return super.supportsInterface(interfaceId);
+    }
+
+    function onERC721Received(address operator, address from, uint256 tokenId, bytes calldata data) external pure override returns (bytes4) {
+        return this.onERC721Received.selector;
     }
 }
