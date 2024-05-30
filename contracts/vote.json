@@ -1,0 +1,27 @@
+{
+    "name": "Voto de Elecciones Presidenciales Argentina 2023 - 1ra Vuelta",
+    "description": "Este es un voto de Elecciones Presidenciales de Argentina realizadas en 2023",
+    "image": "ipfs://URL/152.png",
+    "attributes": [
+        {
+            "trait_type": "Voto de Presidente",
+            "value": "132"
+        },
+        {
+            "trait_type": "Voto de Mercosur Nacional",
+            "value": "132"
+        },
+        {
+            "trait_type": "Voto de Senadores",
+            "value": "501"
+        },
+        {
+            "trait_type": "Voto de Diptados",
+            "value": "501"
+        },
+        {
+            "trait_type": "Voto de Mercosur Regional",
+            "value": "501"
+        }
+    ]
+}
