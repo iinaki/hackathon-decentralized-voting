@@ -25,7 +25,7 @@ const CandidateCards: React.FunctionComponent<CandidateCardsProps> = ({ candidat
   const [mercosurRegionalCards, setMercosurRegionalCards] = useState<Candidate[]>([]);
 
   const handleCardPickPresident = (candidate: Candidate) => {
-    if (candidatesPicked.presidente == candidate) {
+    if (candidatesPicked.presidente === candidate) {
       setCandidatesPicked({
         ...candidatesPicked,
         'presidente': emptyCandidate
@@ -39,7 +39,7 @@ const CandidateCards: React.FunctionComponent<CandidateCardsProps> = ({ candidat
   }
 
   const handleCardPickMercosurNacional = (candidate: Candidate) => {
-    if (candidatesPicked.mercosurNacional == candidate) {
+    if (candidatesPicked.mercosurNacional === candidate) {
       setCandidatesPicked({
         ...candidatesPicked,
         'mercosurNacional': emptyCandidate
@@ -53,7 +53,7 @@ const CandidateCards: React.FunctionComponent<CandidateCardsProps> = ({ candidat
   }
 
   const handleCardPickSenadores = (candidate: Candidate) => {
-    if (candidatesPicked.senadores == candidate) {
+    if (candidatesPicked.senadores === candidate) {
       setCandidatesPicked({
         ...candidatesPicked,
         'senadores': emptyCandidate
@@ -67,7 +67,7 @@ const CandidateCards: React.FunctionComponent<CandidateCardsProps> = ({ candidat
   }
 
   const handleCardPickDiputados = (candidate: Candidate) => { 
-    if (candidatesPicked.diputados == candidate) {
+    if (candidatesPicked.diputados === candidate) {
       setCandidatesPicked({
         ...candidatesPicked,
         'diputados': emptyCandidate
@@ -81,7 +81,7 @@ const CandidateCards: React.FunctionComponent<CandidateCardsProps> = ({ candidat
   }
 
   const handleCardPickMercosurRegional = (candidate: Candidate) => {
-    if (candidatesPicked.mercosurRegional == candidate) {
+    if (candidatesPicked.mercosurRegional === candidate) {
       setCandidatesPicked({
         ...candidatesPicked,
         'mercosurRegional': emptyCandidate
@@ -114,7 +114,7 @@ const CandidateCards: React.FunctionComponent<CandidateCardsProps> = ({ candidat
                     presidentCards.map((card, i) => (
                       i < 3 && ( 
                         <div className='col-md-4 my-2' key={card.lista}>
-                          <CandidateCard candidate={card} handleCardPick={handleCardPickPresident} cardPicked={ card == candidatesPicked.presidente } />
+                          <CandidateCard candidate={card} handleCardPick={handleCardPickPresident} cardPicked={ card === candidatesPicked.presidente } />
                         </div>
                     )))
                   }
@@ -126,7 +126,7 @@ const CandidateCards: React.FunctionComponent<CandidateCardsProps> = ({ candidat
                     presidentCards.map((card, i) => (
                       i >= 3 && ( 
                       <div className='col-md-6 my-2' key={card.lista}>
-                        <CandidateCard candidate={card} handleCardPick={handleCardPickPresident} cardPicked={ card == candidatesPicked.presidente } />
+                        <CandidateCard candidate={card} handleCardPick={handleCardPickPresident} cardPicked={ card === candidatesPicked.presidente } />
                       </div>
                     )))
                   }
@@ -140,7 +140,7 @@ const CandidateCards: React.FunctionComponent<CandidateCardsProps> = ({ candidat
                 {
                   mercosurNacionalCards.map((card, i) => (
                     i < 3 && ( <div className='col-md-4 my-2' key={card.lista}>
-                      <CandidateCard candidate={card} handleCardPick={handleCardPickMercosurNacional} cardPicked={ card == candidatesPicked.mercosurNacional } />
+                      <CandidateCard candidate={card} handleCardPick={handleCardPickMercosurNacional} cardPicked={ card === candidatesPicked.mercosurNacional } />
                     </div>
                   )))
                 }
@@ -151,7 +151,7 @@ const CandidateCards: React.FunctionComponent<CandidateCardsProps> = ({ candidat
                 {
                   mercosurNacionalCards.map((card, i) => (
                     i >= 3 && ( <div className='col-md-6 my-2' key={card.lista}>
-                      <CandidateCard candidate={card} handleCardPick={handleCardPickMercosurNacional} cardPicked={ card == candidatesPicked.mercosurNacional } />
+                      <CandidateCard candidate={card} handleCardPick={handleCardPickMercosurNacional} cardPicked={ card === candidatesPicked.mercosurNacional } />
                     </div>
                   )))
                 }
@@ -165,7 +165,7 @@ const CandidateCards: React.FunctionComponent<CandidateCardsProps> = ({ candidat
                 {
                   senadoresCards.map(card => (
                     <div className='col-md-3 my-2' key={card.lista}>
-                      <CandidateCard candidate={card} handleCardPick={handleCardPickSenadores} cardPicked={ card == candidatesPicked.senadores } />
+                      <CandidateCard candidate={card} handleCardPick={handleCardPickSenadores} cardPicked={ card === candidatesPicked.senadores } />
                     </div>
                   ))
                 }
@@ -179,7 +179,7 @@ const CandidateCards: React.FunctionComponent<CandidateCardsProps> = ({ candidat
                 {
                   diputadosCards.map(card => (
                     <div className='col-md-3 my-2' key={card.lista}>
-                      <CandidateCard candidate={card} handleCardPick={handleCardPickDiputados} cardPicked={ card == candidatesPicked.diputados } />
+                      <CandidateCard candidate={card} handleCardPick={handleCardPickDiputados} cardPicked={ card === candidatesPicked.diputados } />
                     </div>
                   ))
                 }
@@ -193,7 +193,7 @@ const CandidateCards: React.FunctionComponent<CandidateCardsProps> = ({ candidat
                 {
                   mercosurRegionalCards.map(card => (
                     <div className='col-md-3 my-2' key={card.lista}>
-                      <CandidateCard candidate={card} handleCardPick={handleCardPickMercosurRegional} cardPicked={ card == candidatesPicked.mercosurRegional } />
+                      <CandidateCard candidate={card} handleCardPick={handleCardPickMercosurRegional} cardPicked={ card === candidatesPicked.mercosurRegional } />
                     </div>
                   ))
                 }

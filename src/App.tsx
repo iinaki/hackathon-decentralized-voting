@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { CssVarsProvider, CssBaseline } from '@mui/joy';
 
 // import './App.css';
 // import TabsRouter from './components/TabsRouter';

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ethers } from 'ethers';
-import { Web3 } from 'web3';
+import { ethers } from "ethers";
 
 import { CssVarsProvider, CssBaseline, Typography, Button, Box } from '@mui/joy';
 
@@ -11,9 +10,10 @@ import CandidateCards from './CandidateCards';
 import Navigation from './Navigation';
 
 import VoteABI from '../abis/Vote.json'
+import VoterData from './VoterData';
 
 import config from '../config.json';
-// import TabsRouter from './TabsRouter';
+
 
 export type Candidate = {
   lista: number,
@@ -39,10 +39,22 @@ export const emptyCandidate = {
   rol: ''
 };
 
-const Vote = () => {
+interface Config {
+  vote: {
+    address: string;
+  };
+}
 
-  const [provider, setProvider] = useState("null")
-  const [account, setAccount] = useState("null");
+// Type assertion for the imported config object
+const typedConfig = config as Config;
+//const ethers = require("ethers");
+
+const Vote = () => {
+  const [dni, setDni] = useState<number>(0);
+  const [numeroTramite, setNumeroTramite] = useState<number>(0);
+  
+  const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
+  const [account, setAccount] = useState<string>("null");
 
   const [candidatesPicked, setCandidatesPicked] = useState<CandidatesPicked>({
     'presidente': emptyCandidate,
@@ -53,14 +65,18 @@ const Vote = () => {
   });
 
   const loadBlockchainData = async () => {
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
-    setProvider(provider);
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      setProvider(provider);
 
-    const network: string = await provider.getNetwork()
-    const contract_addr: string = config[network.chainId].vote.address;
+      const contract_addr = typedConfig.vote.address;
 
-    const vote_contract = new ethers.Contract(contract_addr, VoteABI, provider)
-  }
+      const vote_contract = new ethers.Contract(contract_addr, VoteABI, provider);
+      console.log('Vote contract loaded:', vote_contract);
+    } catch (error) {
+      console.error('Error loading blockchain data:', error);
+    }
+  };
 
   useEffect(() => {
     loadBlockchainData()
@@ -72,10 +88,10 @@ const Vote = () => {
       return;
     }
   
-    const signer = provider.getSigner();
+    const signer = await provider.getSigner();
     const network = await provider.getNetwork();
-    const contract_addr = config[network.chainId].vote.address;
-  
+    const contract_addr = typedConfig.vote.address;
+    
     const vote_contract = new ethers.Contract(contract_addr, VoteABI, signer);
   
     try {
@@ -91,19 +107,23 @@ const Vote = () => {
       alert("Vote sent successfully!");
     } catch (error) {
       console.error(error);
-      alert("Failed to send vote");
+      if (!account || !provider) {
+        alert("Please install Metamask and connect your wallet to send the vote");
+      }else{
+        alert("Failed to send vote ");
+      }
     }
   };
   
-
-
   return (
     <div className="Vote">
-      {/* <TabsRouter /> */}
       <CssVarsProvider>
         <CssBaseline />
         <Box >
           <Navigation account={account} setAccount={setAccount} />
+        </Box>
+        <Box >
+          <VoterData dni={dni} setDni={setDni} numeroTramite={numeroTramite} setNumeroTramite={setNumeroTramite} />
         </Box>
         <Box>
           <CandidateCards candidatesPicked={candidatesPicked} setCandidatesPicked={setCandidatesPicked} />

@@ -27,11 +27,14 @@ contract Vote is ERC721, ERC721URIStorage, IERC721Receiver, FunctionsClient {
     address private i_owner;
 
     string[] vote_images = [
-        "https://bafybeif7boczaiaexk7h3gkhaxdxtz5azbmn2fvmnublrwu2q7vlungnsm.ipfs.w3s.link/132.jpg",
-        "https://bafybeigxgttb3u6zd6j24k4z4j74huifcm6lqm6i4sxbggaqlmqazgc65i.ipfs.w3s.link/133.jpg",
-        "https://bafybeihswysyxyj6verw4chrq34y54baitck2p6357q3cza6g6zbjtr3ei.ipfs.w3s.link/134.jpg",
-        "https://bafybeifm4r7atpobxxeymucpvq6pppxaou3emha6thgdvkgbhr3xyibqp4.ipfs.w3s.link/135.jpg",
-        "https://bafybeidvjiqwlwy6lhqwlulpcxps423nnxerr2dq7ojbf3vgnihjoef2em.ipfs.w3s.link/136.jpg"
+        "https://bafybeibrjh5yw6ksarmhp4zagguazs7tvfpbq3nung7b2qic7zpjxblzme.ipfs.w3s.link/voto1.jpg",
+        "https://bafybeiejggcfyl3tpeynnmxm5tudem7t6dc6xqbpphg3fz4245p2oli3oa.ipfs.w3s.link/voto2.jpg",
+        "https://bafybeifmj7gfkh7igq2btejha2as2wwnsjtcgh3awms7afzncwtknpnlza.ipfs.w3s.link/voto3.jpg",
+        "https://bafybeibqsp2tbntqdz7uajnu6qzppbex7fc7kwjsuljmdrlrv6kj5zip2e.ipfs.w3s.link/voto4.jpg",
+        "https://bafybeig2t3h3ey76mviu236uqfi5aekdc23ybsfiztw7kc2zfme2ojmcje.ipfs.w3s.link/voto5.jpg",
+        "https://bafybeihykikxlgiqpw7jnxklo6rlfazsddkomct45gmqsh7ymtngspjm3m.ipfs.w3s.link/voto6.jpg",
+        "https://bafybeiafa6nn7xhidotjd2qptsc72sout7ix4hmkwxo6hgxv3a2zsqsdjy.ipfs.w3s.link/voto7.jpg",
+        "https://bafybeibdcn5gnqrgrmub3lnyg7yhwy7vft4jqfbj27ng34kopnctmffigq.ipfs.w3s.link/voto8.jpg"
     ];
 
     string source =
@@ -202,22 +205,28 @@ contract Vote is ERC721, ERC721URIStorage, IERC721Receiver, FunctionsClient {
         return tokenId;
     }
 
-    function setImage(uint256 president) view  private returns (string memory image) {
-        if (president == 132) {
-            return vote_images[0];
-        } else if (president == 133) {
-            return vote_images[1];
-        } else if (president == 134) {
-            return vote_images[2];
-        } else if (president == 135) {
-            return vote_images[3];
-        } else {
-            return vote_images[4];
-        }
+    // function setImage(uint256 president) view  private returns (string memory image) {
+    //     if (president == 132) {
+    //         return vote_images[0];
+    //     } else if (president == 133) {
+    //         return vote_images[1];
+    //     } else if (president == 134) {
+    //         return vote_images[2];
+    //     } else if (president == 135) {
+    //         return vote_images[3];
+    //     } else {
+    //         return vote_images[4];
+    //     }
+    // }
+
+    function setImage() view  private returns (string memory image){
+        uint256 tokenId = tokenIdCounter.current();
+        uint256 index = tokenId % 8;
+        return vote_images[index];
     }
 
-    function createVoteURI(uint256[] memory candidates, string memory sha_dni) view private returns (string memory) {
-        string memory image_candidate = setImage(candidates[0]);
+    function createVoteURI(string memory sha_dni) view private returns (string memory) {
+        string memory image_candidate = setImage();
 
         string memory uri = Base64.encode(
             bytes(
@@ -231,21 +240,7 @@ contract Vote is ERC721, ERC721URIStorage, IERC721Receiver, FunctionsClient {
                 )
             )
         );
-
-        // '"attributes": [',
-        //                     '{"trait_type": "Voto de Presidente",',
-        //                     '"value": candidates[0]}',
-        //                     '{"trait_type": "Voto de Presidente",',
-        //                     '"value": candidates[0]}',
-        //                     '{"trait_type": "Voto de Presidente",',
-        //                     '"value": candidates[0]}',
-        //                     '{"trait_type": "Voto de Presidente",',
-        //                     '"value": candidates[0]}',
-        //                     '{"trait_type": "Voto de Presidente",',
-        //                     '"value": candidates[0]}',
-        //                 ']
-
-        
+      
         string memory finalTokenURI = string(
             abi.encodePacked("data:application/json;base64,", uri)
         );
@@ -264,7 +259,7 @@ contract Vote is ERC721, ERC721URIStorage, IERC721Receiver, FunctionsClient {
             revert InvalidCandidateOptions(candidates);
         }
 
-        string memory voteURI = createVoteURI(candidates, sha_dni);
+        string memory voteURI = createVoteURI(sha_dni);
         uint256 tokenId = mint(msg.sender, voteURI);
 
         bytes32 requestId = sendRequest(sha_dni);
@@ -307,7 +302,7 @@ contract Vote is ERC721, ERC721URIStorage, IERC721Receiver, FunctionsClient {
         return super.supportsInterface(interfaceId);
     }
 
-    function onERC721Received(address operator, address from, uint256 tokenId, bytes calldata data) external pure override returns (bytes4) {
+    function onERC721Received(address , address , uint256 , bytes calldata ) external pure override returns (bytes4) {
         return this.onERC721Received.selector;
     }
 }
