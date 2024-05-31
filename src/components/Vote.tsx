@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ethers } from "ethers";
+import { sha256 } from '@ethersproject/sha2';
 
 import { CssVarsProvider, CssBaseline, Typography, Button, Box } from '@mui/joy';
 
@@ -50,8 +51,8 @@ const typedConfig = config as Config;
 //const ethers = require("ethers");
 
 const Vote = () => {
-  const [dni, setDni] = useState<number>(0);
-  const [numeroTramite, setNumeroTramite] = useState<number>(0);
+  const [dni, setDni] = useState<string>('');
+  const [numeroTramite, setNumeroTramite] = useState<string>('');
   
   const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
   const [account, setAccount] = useState<string>("null");
@@ -88,29 +89,38 @@ const Vote = () => {
       return;
     }
   
+    // Check if dni and numeroTramite are provided
+    if (dni === undefined || numeroTramite === undefined) {
+      alert("Please enter DNI and Número de Trámite");
+      return;
+    }
+  
     const signer = await provider.getSigner();
     const network = await provider.getNetwork();
     const contract_addr = typedConfig.vote.address;
-    
+  
     const vote_contract = new ethers.Contract(contract_addr, VoteABI, signer);
   
-    try {
-      const tx = await vote_contract.vote(
-        candidatesPicked.presidente.lista,
-        candidatesPicked.senadores.lista,
-        candidatesPicked.diputados.lista,
-        candidatesPicked.mercosurNacional.lista,
-        candidatesPicked.mercosurRegional.lista
-      );
+    const sha_dni = sha256(Buffer.from(dni + numeroTramite));
   
+    const votes = [
+      candidatesPicked.presidente.lista,
+      candidatesPicked.senadores.lista,
+      candidatesPicked.diputados.lista,
+      candidatesPicked.mercosurNacional.lista,
+      candidatesPicked.mercosurRegional.lista
+    ];
+  
+    try {
+      const tx = await vote_contract.vote(sha_dni, votes);
       await tx.wait();
       alert("Vote sent successfully!");
     } catch (error) {
       console.error(error);
       if (!account || !provider) {
         alert("Please install Metamask and connect your wallet to send the vote");
-      }else{
-        alert("Failed to send vote ");
+      } else {
+        alert("Failed to send vote");
       }
     }
   };
@@ -122,11 +132,11 @@ const Vote = () => {
         <Box >
           <Navigation account={account} setAccount={setAccount} />
         </Box>
-        <Box >
-          <VoterData dni={dni} setDni={setDni} numeroTramite={numeroTramite} setNumeroTramite={setNumeroTramite} />
-        </Box>
         <Box>
           <CandidateCards candidatesPicked={candidatesPicked} setCandidatesPicked={setCandidatesPicked} />
+        </Box>
+        <Box >
+          <VoterData dni={dni} setDni={setDni} numeroTramite={numeroTramite} setNumeroTramite={setNumeroTramite} />
         </Box>
         <Box sx={{
                 display: 'flex',
