@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { ethers } from "ethers";
 import { sha256 } from '@ethersproject/sha2';
+import { Buffer } from 'buffer';
 
-import { CssVarsProvider, CssBaseline, Typography, Button, Box } from '@mui/joy';
-
+import { CssVarsProvider, CssBaseline, Typography, Button, Box, Sheet, Link  } from '@mui/joy';
+import Modal from '@mui/joy/Modal';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CircularProgress from '@mui/joy/CircularProgress';
+import ErrorIcon from '@mui/icons-material/Error';
 import KeyboardArrowRight from '@mui/icons-material/KeyboardArrowRight';
 
 import '../App.css';
@@ -14,6 +18,7 @@ import VoteABI from '../abis/Vote.json'
 import VoterData from './VoterData';
 
 import config from '../config.json';
+import PreSetOptions from './PreSetOptions';
 
 
 export type Candidate = {
@@ -65,6 +70,11 @@ const Vote = () => {
     'mercosurRegional': emptyCandidate
   });
 
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isSuccess, setIsSuccess] = useState<boolean>(false);
+  const [isError, setIsError] = useState<boolean>(false);
+
   const loadBlockchainData = async () => {
     try {
       const provider = new ethers.BrowserProvider(window.ethereum);
@@ -90,10 +100,15 @@ const Vote = () => {
     }
   
     // Check if dni and numeroTramite are provided
-    if (dni === undefined || numeroTramite === undefined) {
+    if (dni === '' || numeroTramite === '') {
       alert("Please enter DNI and Número de Trámite");
       return;
     }
+
+    setIsModalOpen(true);
+    setIsLoading(true);
+    setIsSuccess(false);
+    setIsError(false);
   
     const signer = await provider.getSigner();
     const network = await provider.getNetwork();
@@ -101,27 +116,35 @@ const Vote = () => {
   
     const vote_contract = new ethers.Contract(contract_addr, VoteABI, signer);
   
-    const sha_dni = sha256(Buffer.from(dni + numeroTramite));
+    let sha_dni = sha256(Buffer.from(dni + numeroTramite));
+    sha_dni = sha_dni.substring(2);
   
     const votes = [
       candidatesPicked.presidente.lista,
+      candidatesPicked.mercosurNacional.lista,
       candidatesPicked.senadores.lista,
       candidatesPicked.diputados.lista,
-      candidatesPicked.mercosurNacional.lista,
       candidatesPicked.mercosurRegional.lista
     ];
-  
+
     try {
       const tx = await vote_contract.vote(sha_dni, votes);
       await tx.wait();
-      alert("Vote sent successfully!");
+      setIsLoading(false);
+      setIsSuccess(true);
+      setDni('');
+      setNumeroTramite('');
+      setCandidatesPicked({
+        'presidente': emptyCandidate,
+        'senadores': emptyCandidate,
+        'diputados': emptyCandidate,
+        'mercosurNacional': emptyCandidate,
+        'mercosurRegional': emptyCandidate
+      });
     } catch (error) {
       console.error(error);
-      if (!account || !provider) {
-        alert("Please install Metamask and connect your wallet to send the vote");
-      } else {
-        alert("Failed to send vote");
-      }
+      setIsLoading(false);
+      setIsError(true);
     }
   };
   
@@ -130,7 +153,7 @@ const Vote = () => {
       <CssVarsProvider>
         <CssBaseline />
         <Box >
-          <Navigation account={account} setAccount={setAccount} />
+          <Navigation account={account} setAccount={setAccount} setCandidatesPicked={setCandidatesPicked} />
         </Box>
         <Box>
           <CandidateCards candidatesPicked={candidatesPicked} setCandidatesPicked={setCandidatesPicked} />
@@ -152,6 +175,58 @@ const Vote = () => {
               </Button>
             </Box>
         </Box>
+        <Modal
+          aria-labelledby="modal-title"
+          aria-describedby="modal-desc"
+          open={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center'}}
+        >
+          <Sheet
+            variant="outlined"
+            sx={{
+              maxWidth: 500,
+              borderRadius: 'md',
+              p: 3,
+              boxShadow: 'lg',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center', // Center children horizontally
+              textAlign: 'center',  // Center text
+            }}
+          >
+            <Typography
+              component="h2"
+              id="modal-title"
+              level="h2"
+              textColor="inherit"
+              fontWeight="lg"
+              mb={1}
+            >
+              {isLoading ? "Your vote is being processed" : isSuccess ? "Vote sent successfully!" : "Failed to send vote"}
+            </Typography>
+            {isLoading ? (
+              <CircularProgress thickness={1} size="lg" sx={{ mb: 2 }} />
+            ) : isSuccess ? (
+              <CheckCircleIcon sx={{ fontSize: 60, color: 'green', mb: 2 }} />
+            ) : (
+              <ErrorIcon sx={{ fontSize: 60, color: 'red', mb: 2 }} />
+            )}
+            <Typography id="modal-desc" textColor="text.tertiary">
+              {isLoading ? "This might take a few minutes." : isSuccess ? "Thank you for voting!" : "Your transaction failed, please try again with the right data."}
+            </Typography>
+            {isSuccess && (
+              <>
+                <Typography id="modal-desc" textColor="text.tertiary">
+                If your data is valid, you will see your vote on your account in a few minutes.
+                </Typography>
+                <Link href="https://testnets.opensea.io/account" target="_blank" rel="noopener" underline="hover">
+                  View in OpenSea.
+                </Link>
+              </>
+            )}
+          </Sheet>
+        </Modal>
       </CssVarsProvider>
       
     </div>

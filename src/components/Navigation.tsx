@@ -1,19 +1,17 @@
 import React from 'react'
-import { ethers } from 'ethers';
 import { Web3 } from 'web3';
 
 import './Sidebar.css';
-import {SidebarData} from './SidebarData';
-
-import { Link } from 'react-router-dom';
 import { CssVarsProvider, CssBaseline, Typography, Button, Box } from '@mui/joy';
+import PreSetOptions from './PreSetOptions';
 
 type NavigationProps = {
   account: string,
-  setAccount: (account: string) => void
+  setAccount: (account: string) => void,
+  setCandidatesPicked: (candidatesPicked: any) => void
 }
 
-const Navigation: React.FunctionComponent<NavigationProps> = ({ account, setAccount }) => {
+const Navigation: React.FunctionComponent<NavigationProps> = ({ account, setAccount, setCandidatesPicked }) => {
 
   async function connectMetamask() {
     console.log("Connecting to Metamask")
@@ -48,22 +46,20 @@ const Navigation: React.FunctionComponent<NavigationProps> = ({ account, setAcco
         <Box sx={{
                 display: 'flex',
                 justifyContent: 'space-between',
+                alignItems: 'center',
                 gap: 1,
                 color: 'white',
                 backgroundColor: '#222831',
-                padding: '1rem'
+                padding: '1rem',
               }}>
-            <Button className='home' variant="soft">
-              <Link to={`/DVote/home`} className="link">
-                Back to home
-              </Link>
-            </Button>
+            <PreSetOptions setCandidatesPicked={setCandidatesPicked} />
             
             {account != 'null' ? (
                 <Button 
                     className='MetamaskConnect'
                     variant="soft"
                     size="lg"
+                    sx={{ maxHeight: '60px', padding: '1rem' }}
                 >
                     {account.slice(0, 6) + '...' + account.slice(38, 42)}
                 </Button>
@@ -72,6 +68,7 @@ const Navigation: React.FunctionComponent<NavigationProps> = ({ account, setAcco
                     className='MetamaskConnect'
                     variant="soft"
                     size="lg"
+                    sx={{ maxHeight: '60px', padding: '1rem' }}
                     onClick={connectMetamask}
                 >
                     Connect to Metamask
