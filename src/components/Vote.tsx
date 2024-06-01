@@ -14,11 +14,10 @@ import '../App.css';
 import CandidateCards from './CandidateCards';
 import Navigation from './Navigation';
 
-import VoteABI from '../abis/Vote.json'
+import VoteABI from '../abis/Vote.json';
 import VoterData from './VoterData';
 
 import config from '../config.json';
-import PreSetOptions from './PreSetOptions';
 
 
 export type Candidate = {
@@ -51,7 +50,6 @@ interface Config {
   };
 }
 
-// Type assertion for the imported config object
 const typedConfig = config as Config;
 //const ethers = require("ethers");
 
