@@ -28,33 +28,33 @@ const Home = () => {
     const [presidenteVotes, setPresidenteVotes] = useState<number[][]>(
         [
             [132, 133, 134, 135, 136],
-            [0, 0, 0, 0, 0]
+            [4, 0, 0, 0, 0]
         ]
     );
     const [senadoresVotes, setSenadoresVotes] = useState<number[][]>(
         [
             [501, 502, 503, 504],
-            [0, 0, 0, 0]
+            [0, 0, 4, 0]
         ]
     );
     const [diputadosVotes, setDiputadosVotes] = useState<number[][]>(
         [
             [501, 502, 503, 504],
-            [0, 0, 0, 0]
+            [0, 0, 0, 4]
         ]
     );
 
     const [mercosurNacionalVotes, setMercosurNacionalVotes] = useState<number[][]>(
         [
             [132, 133, 134, 135, 136],
-            [0, 0, 0, 0, 0]
+            [4, 0, 0, 0, 0]
         ]
     );
 
     const [mercosurRegionalVotes, setMercosurRegionalVotes] = useState<number[][]>(
         [
             [501, 502, 503, 504],
-            [0, 0, 0, 0]
+            [0, 0, 0, 4]
         ]
     );
 
@@ -63,97 +63,39 @@ const Home = () => {
     //         const provider = new ethers.BrowserProvider(window.ethereum);
     //         setProvider(provider);
     //         const contract_addr = typedConfig.vote.address;
-
     //         const vote_contract = new ethers.Contract(contract_addr, VoteABI, provider);
 
-    //         let votes: number[] = [];
-    //         presidenteVotes[0].forEach(async (listId) => {
-    //             const voteCount = await vote_contract.getPresidentVotes(listId);
-    //             votes.push(voteCount);
-    //         });
+    //         const fetchVotes = async (list: number[], method: string) => {
+    //             const votes = await Promise.all(list.map(async (listId) => {
+    //                 const voteCount = await vote_contract[method](listId);
+    //                 return voteCount.toNumber(); // Ensure the vote count is a number
+    //             }));
+    //             return votes;
+    //         };
 
-    //         console.log(votes);
+    //         const presidenteVotesList = await fetchVotes(presidenteVotes[0], 'getPresidentVotes');
+    //         setPresidenteVotes([presidenteVotes[0], presidenteVotesList]);
 
-    //         setPresidenteVotes([presidenteVotes[0], votes]);
+    //         const senadoresVotesList = await fetchVotes(senadoresVotes[0], 'getSenadoresVotes');
+    //         setSenadoresVotes([senadoresVotes[0], senadoresVotesList]);
 
-    //         votes = [];
-    //         senadoresVotes[0].forEach(async (listId) => {
-    //             const voteCount = await vote_contract.getSenadoresVotes(listId);
-    //             votes.push(voteCount);
-    //         });
-    //         console.log(votes);
+    //         const diputadosVotesList = await fetchVotes(diputadosVotes[0], 'getDiputadosVotes');
+    //         setDiputadosVotes([diputadosVotes[0], diputadosVotesList]);
 
-    //         setSenadoresVotes([senadoresVotes[0], votes]);
+    //         const mercosurNacionalVotesList = await fetchVotes(mercosurNacionalVotes[0], 'getMercosurNacionalVotes');
+    //         setMercosurNacionalVotes([mercosurNacionalVotes[0], mercosurNacionalVotesList]);
 
-    //         votes = [];
-    //         diputadosVotes[0].forEach(async (listId) => {
-    //             const voteCount = await vote_contract.getDiputadosVotes(listId);
-    //             votes.push(voteCount);
-    //         });
-    //         console.log(votes);
+    //         const mercosurRegionalVotesList = await fetchVotes(mercosurRegionalVotes[0], 'getMercosurRegionalVotes');
+    //         setMercosurRegionalVotes([mercosurRegionalVotes[0], mercosurRegionalVotesList]);
 
-    //         setDiputadosVotes([diputadosVotes[0], votes]);
-
-    //         votes = [];
-    //         mercosurNacionalVotes[0].forEach(async (listId) => {
-    //             const voteCount = await vote_contract.getMercosurNacionalVotes(listId);
-    //             votes.push(voteCount);
-    //         });
-    //         console.log(votes);
-
-    //         setMercosurNacionalVotes([mercosurNacionalVotes[0], votes]);
-
-    //         votes = [];
-    //         mercosurRegionalVotes[0].forEach(async (listId) => {
-    //             const voteCount = await vote_contract.getMercosurRegionalVotes(listId);
-    //             votes.push(voteCount);
-    //         });
-    //         console.log(votes);
-
-    //         setMercosurRegionalVotes([mercosurRegionalVotes[0], votes]);
     //     } catch (error) {
     //         console.error('Error loading blockchain data:', error);
     //     }
-    //   };
+    // };
 
-    const fetchVoteCounts = async () => {
-        try {
-            const provider = new ethers.BrowserProvider(window.ethereum);
-            setProvider(provider);
-            const contract_addr = typedConfig.vote.address;
-            const vote_contract = new ethers.Contract(contract_addr, VoteABI, provider);
-
-            const fetchVotes = async (list: number[], method: string) => {
-                const votes = await Promise.all(list.map(async (listId) => {
-                    const voteCount = await vote_contract[method](listId);
-                    return voteCount.toNumber(); // Ensure the vote count is a number
-                }));
-                return votes;
-            };
-
-            const presidenteVotesList = await fetchVotes(presidenteVotes[0], 'getPresidentVotes');
-            setPresidenteVotes([presidenteVotes[0], presidenteVotesList]);
-
-            const senadoresVotesList = await fetchVotes(senadoresVotes[0], 'getSenadoresVotes');
-            setSenadoresVotes([senadoresVotes[0], senadoresVotesList]);
-
-            const diputadosVotesList = await fetchVotes(diputadosVotes[0], 'getDiputadosVotes');
-            setDiputadosVotes([diputadosVotes[0], diputadosVotesList]);
-
-            const mercosurNacionalVotesList = await fetchVotes(mercosurNacionalVotes[0], 'getMercosurNacionalVotes');
-            setMercosurNacionalVotes([mercosurNacionalVotes[0], mercosurNacionalVotesList]);
-
-            const mercosurRegionalVotesList = await fetchVotes(mercosurRegionalVotes[0], 'getMercosurRegionalVotes');
-            setMercosurRegionalVotes([mercosurRegionalVotes[0], mercosurRegionalVotesList]);
-
-        } catch (error) {
-            console.error('Error loading blockchain data:', error);
-        }
-    };
-
-    useEffect(() => {
-        fetchVoteCounts();
-    }, []);
+    // useEffect(() => {
+    //     fetchVoteCounts();
+    // }, []);
 
     return (
         <div className="Vote">
